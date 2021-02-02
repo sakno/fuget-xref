@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30907.101
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XRefGenerator", "XRefGenerator.csproj", "{841A4A53-930B-4C94-BED5-CD32156D5749}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{841A4A53-930B-4C94-BED5-CD32156D5749}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{841A4A53-930B-4C94-BED5-CD32156D5749}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{841A4A53-930B-4C94-BED5-CD32156D5749}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{841A4A53-930B-4C94-BED5-CD32156D5749}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2BFDFE37-A2AB-42F9-9993-8FC092F4516D}
+	EndGlobalSection
+EndGlobal
