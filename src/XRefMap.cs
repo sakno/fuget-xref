@@ -16,10 +16,33 @@ namespace XRefGenerator
             this.tfm = tfm;
         }
 
-        private void Add(TypeDefinition type, MetadataReader reader, string moduleName)
+        private void AddNestedTypes(IReadOnlyCollection<TypeDefinitionHandle> nestedTypes, MetadataReader reader, string moduleName)
         {
-            var entry = new XRefEntry(type, reader, moduleName, packageId, packageVersion, tfm);
+            // analyze nested types
+            foreach (var handle in nestedTypes)
+            {
+                var nestedType = reader.GetTypeDefinition(handle);
+                if (IsExternallyVisible(nestedType.Attributes))
+                {
+                    Add(nestedType, reader, moduleName);
+                }
+            }
+
+            static bool IsExternallyVisible(TypeAttributes attributes)
+            {
+                attributes &= TypeAttributes.VisibilityMask;
+                return attributes == TypeAttributes.NestedPublic ||
+                    attributes == TypeAttributes.NestedFamORAssem ||
+                    attributes == TypeAttributes.NestedFamily;
+            }
+        }
+
+        private void Add(in TypeDefinition type, MetadataReader reader, string moduleName)
+        {
+            var entry = new XRefEntry(in type, reader, moduleName, packageId, packageVersion, tfm);
             Add(entry.FullName, entry);
+
+            AddNestedTypes(type.GetNestedTypes(), reader, moduleName);
         }
 
         internal void LoadTypes(PEReader assembly)
@@ -29,14 +52,15 @@ namespace XRefGenerator
             foreach (var handle in reader.TypeDefinitions)
             {
                 var type = reader.GetTypeDefinition(handle);
-                if (IsExternallyVisible(type.Attributes))
-                    Add(type, reader, moduleName);
+                if (IsExternallyVisible(type.Attributes) && !type.IsNested)
+                    Add(in type, reader, moduleName);
             }
 
-            static bool IsExternallyVisible(TypeAttributes attributes) => (attributes & TypeAttributes.Public) != 0 ||
-                (attributes & TypeAttributes.NestedPublic) != 0 ||
-                (attributes & TypeAttributes.NestedFamily) != 0 ||
-                (attributes & TypeAttributes.NestedFamORAssem) != 0;
+            static bool IsExternallyVisible(TypeAttributes attributes)
+            {
+                attributes &= TypeAttributes.VisibilityMask;
+                return attributes == TypeAttributes.Public;
+            }
         }
     }
 }
