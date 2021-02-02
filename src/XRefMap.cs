@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Reflection;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 
 namespace XRefGenerator
 {
@@ -14,12 +16,27 @@ namespace XRefGenerator
             this.tfm = tfm;
         }
 
-        internal void LoadTypes(Assembly target)
+        private void Add(TypeDefinition type, MetadataReader reader, string moduleName)
         {
-            foreach (var type in target.ExportedTypes)
+            var entry = new XRefEntry(type, reader, moduleName, packageId, packageVersion, tfm);
+            Add(entry.FullName, entry);
+        }
+
+        internal void LoadTypes(PEReader assembly)
+        {
+            var reader = assembly.GetMetadataReader();
+            var moduleName = reader.GetString(reader.GetModuleDefinition().Name);
+            foreach (var handle in reader.TypeDefinitions)
             {
-                Add(type.FullName, new XRefEntry(type, packageId, packageVersion, tfm));
+                var type = reader.GetTypeDefinition(handle);
+                if (IsExternallyVisible(type.Attributes))
+                    Add(type, reader, moduleName);
             }
+
+            static bool IsExternallyVisible(TypeAttributes attributes) => (attributes & TypeAttributes.Public) != 0 ||
+                (attributes & TypeAttributes.NestedPublic) != 0 ||
+                (attributes & TypeAttributes.NestedFamily) != 0 ||
+                (attributes & TypeAttributes.NestedFamORAssem) != 0;
         }
     }
 }

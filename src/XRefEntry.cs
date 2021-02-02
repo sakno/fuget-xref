@@ -1,14 +1,17 @@
 ﻿using System;
+using System.Reflection.Metadata;
 
 namespace XRefGenerator
 {
     internal readonly struct XRefEntry
     {
-        internal XRefEntry(Type type, string packageId, string packageVersion, string tfm)
+        internal XRefEntry(TypeDefinition type, MetadataReader reader, string moduleName, string packageId, string packageVersion, string tfm)
         {
-            Name = type.Name;
-            FullName = type.FullName;
-            Link = new Uri($"https://fuget.org/packages/{packageId}/{packageVersion}/lib/{tfm}/{type.Assembly.ManifestModule.ScopeName}/{type.Namespace}/{type.Name}");
+            var ns = reader.GetString(type.Namespace);
+            var name = reader.GetString(type.Name);
+            FullName = ns + '.' + name;
+            Link = new Uri($"https://fuget.org/packages/{packageId}/{packageVersion}/lib/{tfm}/{moduleName}/{ns}/{name}");
+            Name = name;
         }
 
         internal string Name { get; }

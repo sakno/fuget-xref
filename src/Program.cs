@@ -6,8 +6,7 @@ using NuGet.Versioning;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
-using System.Runtime.Loader;
+using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -35,7 +34,7 @@ namespace XRefGenerator
             return packageFile;
         }
 
-        private static async IAsyncEnumerable<Assembly> LoadPackageAssemblies(Stream package, AssemblyLoadContext context, NuGetFramework tfm)
+        private static async IAsyncEnumerable<PEReader> LoadPackageAssemblies(Stream package, NuGetFramework tfm)
         {
             using var reader = new PackageArchiveReader(package);
             var libs = await reader.GetLibItemsAsync(default);
@@ -49,18 +48,18 @@ namespace XRefGenerator
                         if (string.Equals(".dll", extension, StringComparison.OrdinalIgnoreCase))
                         {
                             await using var content = await reader.GetStreamAsync(path, default);
-                            yield return LoadFromPackage(content, context);
+                            yield return LoadFromPackage(content);
                         }
                     }
                 }
             }
 
-            static Assembly LoadFromPackage(Stream stream, AssemblyLoadContext context)
+            static PEReader LoadFromPackage(Stream stream)
             {
-                using var tempFile = new FileStream(GetRandomPath(), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.DeleteOnClose | FileOptions.SequentialScan);
+                var tempFile = new FileStream(GetRandomPath(), FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.DeleteOnClose | FileOptions.SequentialScan);
                 stream.CopyTo(tempFile);
                 tempFile.Position = 0L;
-                return context.LoadFromStream(tempFile);
+                return new PEReader(tempFile, PEStreamOptions.Default);
             }
         }
 
@@ -87,13 +86,12 @@ namespace XRefGenerator
             package.Position = 0L;
 
             // extract DLLs
-            var context = new AssemblyLoadContext(null, true);
             var map = new XRefMap(packageId, packageVersion, tfm);
-            await foreach (var assembly in LoadPackageAssemblies(package, context, NuGetFramework.Parse(tfm)))
-            {
-                // load xrefs
-                map.LoadTypes(assembly);
-            }
+            await foreach (var assembly in LoadPackageAssemblies(package, NuGetFramework.Parse(tfm)))
+                using (assembly)
+                {
+                    map.LoadTypes(assembly);
+                }
 
             // dump yml file
             await SaveXRefMapAsync(map, outputFileName);
